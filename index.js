@@ -57,8 +57,8 @@ builder.defineStreamHandler(async ({ id, type, req }) => {
 });
 
 const addonInterface = builder.getInterface();
-const port = process.env.PORT || 3000;
-const host = '0.0.0.0';
-http.createServer(addonInterface.requestHandler).listen(port, host, () => {
-    console.log(`Donghua Stream-only Addon running on http://${host}:${port} with private access key`);
+const port = process.env.PORT;
+http.createServer(addonInterface.requestHandler).listen(port, () => {
+    console.log(`Donghua Stream-only Addon running on port ${port} with private access key`);
 });
+
