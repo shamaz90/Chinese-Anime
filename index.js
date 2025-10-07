@@ -17,8 +17,8 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
+// Stream handler with private key check
 builder.defineStreamHandler(async ({ id, type, req }) => {
-    // Enforce private access key via query param
     const url = req && req.url;
     const urlParams = url ? new URLSearchParams(url.split("?")[1]) : null;
     const key = urlParams ? urlParams.get('key') : null;
@@ -56,9 +56,9 @@ builder.defineStreamHandler(async ({ id, type, req }) => {
     return { streams };
 });
 
-// --- Start server to keep process alive (Render needs this) ---
 const addonInterface = builder.getInterface();
 const port = process.env.PORT || 3000;
-http.createServer(addonInterface.requestHandler).listen(port, () => {
-    console.log(`Donghua Stream-only Addon running with private access key on port ${port}`);
+const host = '0.0.0.0';
+http.createServer(addonInterface.requestHandler).listen(port, host, () => {
+    console.log(`Donghua Stream-only Addon running on http://${host}:${port} with private access key`);
 });
