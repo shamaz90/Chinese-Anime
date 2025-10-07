@@ -12,6 +12,7 @@ const manifest = {
     "description": "Donghua stream source only; shows up as a streaming option in any Stremio catalogue.",
     "types": ["movie", "series"],
     "resources": ["stream"],
+    "catalogs": [], // <-- REQUIRED: Manifest must contain catalogs as an array!
     "idPrefixes": ["tt"] // works with existing Stremio catalogs using IMDb IDs
 };
 
