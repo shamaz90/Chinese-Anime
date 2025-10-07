@@ -1,0 +1,71 @@
+const { addonBuilder } = require("stremio-addon-sdk");
+const express = require('express');
+const http = require('http');
+
+const RD_TOKEN = process.env.RD_TOKEN || ""; 
+const PRIVATE_ACCESS_KEY = process.env.PRIVATE_ACCESS_KEY || "my-super-secret-key-123";
+
+const manifest = {
+    "id": "org.donghua.render.streamonly",
+    "version": "1.0.0",
+    "name": "Donghua Streaming (Lucifer+Torrentio+Comet+RD)",
+    "description": "Donghua stream source only; shows up as a streaming option in any Stremio catalogue.",
+    "types": ["movie", "series"],
+    "resources": ["stream"],
+    "idPrefixes": ["tt"] // works with existing Stremio catalogs using IMDb IDs
+};
+
+const builder = new addonBuilder(manifest);
+
+// Stream handler ONLY
+builder.defineStreamHandler(async ({ id, type }) => {
+    let streams = [];
+
+    // Lucifer Donghua (manual search)
+    streams.push({
+        title: "Lucifer Donghua (search manually)",
+        externalUrl: "https://luciferdonghua.in/"
+    });
+
+    // Torrentio/Comet meta-addons
+    streams.push({
+        title: "Torrentio",
+        externalUrl: `stremio://addon/torrentio/stream/${id}`
+    });
+    streams.push({
+        title: "Comet",
+        externalUrl: `stremio://addon/comet/stream/${id}`
+    });
+
+    // Real Debrid
+    if (RD_TOKEN) {
+        streams.push({
+            title: "Real Debrid (Premium, manual magnet)",
+            externalUrl: "https://real-debrid.com/torrents"
+        });
+    } else {
+        streams.push({
+            title: "Enable Real Debrid by setting RD_TOKEN in Render!",
+            externalUrl: "https://real-debrid.com/apitoken"
+        });
+    }
+
+    return { streams };
+});
+
+// Express app for access key authentication
+const app = express();
+app.use((req, res, next) => {
+    const key = req.query.key;
+    if (!key || key !== PRIVATE_ACCESS_KEY) {
+        return res.status(403).json({ error: "Forbidden: Invalid access key." });
+    }
+    next();
+});
+app.use('/', builder.getInterface());
+
+// Start server
+const port = process.env.PORT || 3000;
+http.createServer(app).listen(port, () => {
+    console.log(`Donghua Stream-only Addon running with private access key on port ${port}`);
+});
