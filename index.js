@@ -1,6 +1,4 @@
 const { addonBuilder } = require("stremio-addon-sdk");
-const express = require('express');
-const http = require('http');
 
 const RD_TOKEN = process.env.RD_TOKEN || ""; 
 const PRIVATE_ACCESS_KEY = process.env.PRIVATE_ACCESS_KEY || "my-super-secret-key-123";
@@ -12,23 +10,28 @@ const manifest = {
     "description": "Donghua stream source only; shows up as a streaming option in any Stremio catalogue.",
     "types": ["movie", "series"],
     "resources": ["stream"],
-    "catalogs": [], // <-- REQUIRED: Manifest must contain catalogs as an array!
-    "idPrefixes": ["tt"] // works with existing Stremio catalogs using IMDb IDs
+    "catalogs": [],
+    "idPrefixes": ["tt"]
 };
 
 const builder = new addonBuilder(manifest);
 
-// Stream handler ONLY
-builder.defineStreamHandler(async ({ id, type }) => {
-    let streams = [];
+// Stream handler ONLY with private key check
+builder.defineStreamHandler(async ({ id, type, req }) => {
+    // Enforce private access key via query param
+    const url = req && req.url;
+    const urlParams = url ? new URLSearchParams(url.split("?")[1]) : null;
+    const key = urlParams ? urlParams.get('key') : null;
+    if (!key || key !== PRIVATE_ACCESS_KEY) {
+        return { streams: [] };
+    }
 
-    // Lucifer Donghua (manual search)
+    let streams = [];
     streams.push({
         title: "Lucifer Donghua (search manually)",
         externalUrl: "https://luciferdonghua.in/"
     });
 
-    // Torrentio/Comet meta-addons
     streams.push({
         title: "Torrentio",
         externalUrl: `stremio://addon/torrentio/stream/${id}`
@@ -38,7 +41,6 @@ builder.defineStreamHandler(async ({ id, type }) => {
         externalUrl: `stremio://addon/comet/stream/${id}`
     });
 
-    // Real Debrid
     if (RD_TOKEN) {
         streams.push({
             title: "Real Debrid (Premium, manual magnet)",
@@ -54,19 +56,7 @@ builder.defineStreamHandler(async ({ id, type }) => {
     return { streams };
 });
 
-// Express app for access key authentication
-const app = express();
-app.use((req, res, next) => {
-    const key = req.query.key;
-    if (!key || key !== PRIVATE_ACCESS_KEY) {
-        return res.status(403).json({ error: "Forbidden: Invalid access key." });
-    }
-    next();
-});
-app.use('/', builder.getInterface());
-
-// Start server
 const port = process.env.PORT || 3000;
-http.createServer(app).listen(port, () => {
+builder.getInterface().listen(port, () => {
     console.log(`Donghua Stream-only Addon running with private access key on port ${port}`);
 });
