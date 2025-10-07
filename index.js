@@ -1,4 +1,6 @@
 const { addonBuilder } = require("stremio-addon-sdk");
+const express = require("express");
+const http = require("http");
 
 const RD_TOKEN = process.env.RD_TOKEN || ""; 
 const PRIVATE_ACCESS_KEY = process.env.PRIVATE_ACCESS_KEY || "my-super-secret-key-123";
@@ -16,7 +18,7 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
-// Stream handler ONLY with private key check
+// Stream handler with private key check
 builder.defineStreamHandler(async ({ id, type, req }) => {
     // Enforce private access key via query param
     const url = req && req.url;
@@ -56,7 +58,10 @@ builder.defineStreamHandler(async ({ id, type, req }) => {
     return { streams };
 });
 
+// --- Proper Express/http startup ---
+const app = express();
+app.use(builder.getInterface());
 const port = process.env.PORT || 3000;
-builder.getInterface().listen(port, () => {
+http.createServer(app).listen(port, () => {
     console.log(`Donghua Stream-only Addon running with private access key on port ${port}`);
 });
